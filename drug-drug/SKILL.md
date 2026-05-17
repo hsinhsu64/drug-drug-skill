@@ -63,6 +63,10 @@ Execute **at least 5 distinct searches** to ensure adequate coverage:
    - Use `PubMed:search_articles` with `"DrugA" AND "DrugB" AND "drug interaction"`
    - Use `PubMed:get_article_metadata` for key articles
 
+6. **OpenEvidence Skill Search**
+   - Query the OpenEvidence skill with a direct clinical question: "What is the drug interaction between DrugA and DrugB? What are the clinical effects, mechanism, and management?"
+   - Extract the synthesized clinical evidence and management recommendations from the OpenEvidence response.
+
 ### Step 2: Evidence Appraisal
 
 Read `references/evidence-grading.md` for complete grading criteria.
@@ -192,7 +196,7 @@ Produce the final report in the following format:
 ## Key Principles
 
 1. **Retrieval before generation**: Never rely on LLM training data alone. Always perform real-time literature search before generating any assessment. Training data may be outdated, incomplete, or reflect unverified sources (social media, blogs). Real-time retrieval from peer-reviewed databases ensures currency and reliability.
-2. **Multi-source cross-validation**: Use at least PubMed + CrossRef + WebSearch (three sources). Cross-validate findings across sources to reduce the risk of hallucination or bias from any single retrieval.
+2. **Multi-source cross-validation**: Use at least PubMed + CrossRef + WebSearch + OpenEvidence (four sources). Cross-validate findings across sources to reduce the risk of hallucination or bias from any single retrieval.
 3. **Full citation traceability**: Every factual claim must cite its source (PMID, DOI, or URL). This enables clinicians to fact-check AI-generated answers against the original sources -- a core requirement for explainable AI (XAI) in clinical settings.
 4. **Conservative grading**: When evidence is insufficient, err on the side of higher severity and lower documentation grade (err on the side of caution). Patient safety takes precedence over precision.
 5. **Mechanism is king**: Even without clinical studies, if the pharmacologic mechanism is clear (e.g., known CYP inhibitor + known CYP substrate), document it and assign at least Fair documentation.
