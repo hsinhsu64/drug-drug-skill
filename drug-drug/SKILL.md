@@ -4,11 +4,12 @@ description: >
   Evidence-based Drug-Drug Interaction (DDI) assessment skill modeled after the Micromedex Drug-Reax
   methodology. Trigger this skill whenever the user types /drug-drug, mentions "drug interaction",
   "DDI", "drug-drug", "can I take X with Y", "interaction between", "交互作用", "併用",
-  or asks whether two medications can be used together. This skill performs systematic literature
-  retrieval via PubMed, CrossRef, and WebSearch, then produces a structured assessment report
-  with Severity, Documentation, Onset, Mechanism, Clinical Effects, and Management —
-  mirroring the Micromedex Drug-Reax classification framework. Even casual questions like
-  "is it safe to combine A and B" should trigger this skill.
+  polypharmacy, or asks whether two or more medications can be used together. Supports 2–5 drugs:
+  automatically enumerates all pairwise combinations and produces individual DDI reports plus a
+  summary matrix. This skill performs systematic literature retrieval via PubMed, CrossRef,
+  OpenEvidence, and WebSearch, then produces structured assessment reports with Severity,
+  Documentation, Onset, Mechanism, Clinical Effects, and Management —
+  mirroring the Micromedex Drug-Reax classification framework.
 ---
 
 # Drug-Drug Interaction (DDI) Evidence-Based Assessment
@@ -25,9 +26,9 @@ pharmacist expertise.
 
 ## Trigger
 
-- `/drug-drug DrugA DrugB`
-- Any query mentioning two drug names and asking about interaction, safety, or concomitant use
-- Keywords: DDI, interaction, contraindication, concomitant, 交互作用, 併用
+- `/drug-drug DrugA DrugB [DrugC] [DrugD] [DrugE]` — accepts 2 to 5 drugs
+- Any query mentioning two or more drug names and asking about interaction, safety, or concomitant use
+- Keywords: DDI, interaction, contraindication, concomitant, polypharmacy, 交互作用, 併用, 多重用藥
 
 ---
 
@@ -35,8 +36,30 @@ pharmacist expertise.
 
 ### Step 0: Drug Name Resolution
 
-Extract two drug names from user input. If the user provides brand names, resolve to
-INN/generic names. If only one drug is provided or names are ambiguous, ask the user to clarify.
+Extract all drug names from user input (minimum 2, maximum 5).
+
+- If the user provides brand names, resolve to INN/generic names.
+- If fewer than 2 drugs are provided or names are ambiguous, ask the user to clarify.
+- **If more than 5 drugs are provided, stop and respond**: "This skill supports a maximum of 5 drugs at once (up to 10 pairs). Please reduce the number of drugs to 5 or fewer."
+
+### Step 0.5: Polypharmacy Pair Enumeration
+
+If 3 or more drugs are provided, enumerate **all unique pairwise combinations** and display them to the user before proceeding. Use this formula: N drugs → N×(N−1)/2 pairs.
+
+**Example for 4 drugs (A, B, C, D) → 6 pairs:**
+
+| # | Pair |
+|---|------|
+| 1 | A – B |
+| 2 | A – C |
+| 3 | A – D |
+| 4 | B – C |
+| 5 | B – D |
+| 6 | C – D |
+
+Inform the user: "I will now assess [N] pairs. This may take a moment."
+
+Then **execute Steps 1–3 for each pair sequentially** before generating the final report in Step 4.
 
 ### Step 1: Literature Search
 
@@ -139,10 +162,43 @@ Classify the interaction mechanism into:
 
 ### Step 4: Report Generation
 
-Produce the final report in the following format:
+#### 4a. Mode Selection
+
+- **2-drug mode**: Produce a single detailed DDI report (format below).
+- **3–5 drug mode (Polypharmacy)**: First produce a **DDI Summary Matrix**, then produce individual detailed reports for each pair — prioritizing pairs with Contraindicated or Major severity.
+
+#### 4b. DDI Summary Matrix (Polypharmacy Mode Only)
 
 ```markdown
-# Drug-Drug Interaction Assessment Report
+# Polypharmacy DDI Summary Matrix
+
+## Drug List
+
+| ID | Generic Name | Brand Name(s) |
+|----|-------------|---------------|
+| A  | [name]      | [names]       |
+| B  | [name]      | [names]       |
+| C  | [name]      | [names]       |
+
+## Interaction Matrix
+
+| Pair  | Severity        | Documentation | Onset         | Key Clinical Concern         |
+|-------|-----------------|---------------|---------------|------------------------------|
+| A – B | [Grade]         | [Grade]       | [Grade]       | [one-line summary]           |
+| A – C | [Grade]         | [Grade]       | [Grade]       | [one-line summary]           |
+| B – C | [Grade]         | [Grade]       | [Grade]       | [one-line summary]           |
+
+> Severity color guide: Contraindicated = critical | Major = high risk | Moderate = caution | Minor = low risk
+
+## Highest-Risk Pairs Requiring Immediate Attention
+
+[List any Contraindicated or Major pairs with a brief clinical note]
+```
+
+#### 4c. Individual Pair Report (for each pair)
+
+```markdown
+# DDI Report: [DrugA] + [DrugB]
 
 ## Drug Pair
 
@@ -177,7 +233,11 @@ Produce the final report in the following format:
 ## Evidence Sources
 
 [Key references: Author, Journal, Year, PMID/DOI]
+```
 
+#### 4d. Disclaimer (append to all reports)
+
+```markdown
 ## Disclaimer
 
 > **This report is generated by AI using a retrieval-augmented generation (RAG) approach and
